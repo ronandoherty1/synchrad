@@ -91,10 +91,11 @@ def tracksFromOPMD(ts, pt, ref_iteration,
     f = h5py.File(fname, mode='w')
 
     for ip in range(pt.N_selected):
-        track_pieces = split_track_by_nans(
+        t=ts.t.copy()
+        track_pieces, good_inds = split_track_by_nans(
                 TC['x'][ip], TC['y'][ip], TC['z'][ip],
                 TC['ux'][ip], TC['uy'][ip], TC['uz'][ip], TC['w'][ip])
-
+        t=t[good_inds]
         for track in track_pieces:
             x, y, z, ux, uy, uz, w, it_start = track
             nsteps = x.size
@@ -304,6 +305,7 @@ def split_track_by_nans(x, y, z, ux, uy, uz, w):
     uz_loc = []
     w_loc = []
     iterations_loc = []
+    good_inds = [] # The indices for which the value is not nan
     TrackRecorded = False
 
     for it, val in enumerate(w):
@@ -317,6 +319,7 @@ def split_track_by_nans(x, y, z, ux, uy, uz, w):
             uz_loc.append(uz[it])
             w_loc.append(w[it])
             iterations_loc.append(it)
+            good_inds.append(it)
         else:
             trackContainer.append([
                 np.array(x_loc), np.array(y_loc), np.array(z_loc),
@@ -348,7 +351,7 @@ def split_track_by_nans(x, y, z, ux, uy, uz, w):
             trackContainerSelected.append( [x_loc, y_loc, z_loc, \
                                       ux_loc, uy_loc, uz_loc, \
                                       w_loc[0], iterations_loc[0]])
-    return trackContainerSelected
+    return trackContainerSelected, good_inds
 
 @njit
 def record_particles_step(tracks, nsteps, it, it_start,
